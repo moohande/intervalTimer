@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interval Timer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=Teko:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #101820;
+      --muted: #5a6b78;
+      --center: #36434f;
+      --phase1: #1a74d4;
+      --phase1-soft: #b7d4f2;
+      --phase2: #e06b56;
+      --phase2-soft: #f0c8bf;
+      --line: #c5d0da;
+      --surface: rgba(255, 255, 255, 0.72);
+      --btn-text: #f7fafc;
+      --font-display: "Teko", sans-serif;
+      --font-body: "Sora", sans-serif;
+      --bg: #eef3f7;
+      --bg-glow-a: rgba(26, 116, 212, 0.16);
+      --bg-glow-b: rgba(224, 107, 86, 0.08);
+      --accent: var(--center);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      color: var(--ink);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 55% at 50% -10%, var(--bg-glow-a), transparent 58%),
+        radial-gradient(ellipse 55% 40% at 100% 100%, var(--bg-glow-b), transparent 55%),
+        radial-gradient(ellipse 40% 35% at 0% 80%, var(--bg-glow-a), transparent 50%);
+      transition: background-color 0.4s ease;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 36px 20px 28px;
+    }
+
+    body.phase-phase1 {
+      --bg: #e8eef6;
+      --accent: var(--phase1);
+    }
+
+    body.phase-phase2 {
+      --bg: #f6ebe8;
+      --accent: var(--phase2);
+    }
+
+    body.phase-done {
+      --bg: #e8eef3;
+      --accent: var(--center);
+    }
+
+    .app {
+      width: min(420px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .stage {
+      position: relative;
+      width: min(300px, 76vw);
+      aspect-ratio: 1;
+      margin: 4px auto 0;
+    }
+
+    .ring {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 10px 24px rgba(16, 24, 32, 0.08));
+    }
+
+    .ring .track {
+      fill: none;
+      stroke-width: 9;
+      stroke-linecap: butt;
+    }
+
+    .ring .track.phase1 {
+      stroke: var(--phase1-soft);
+    }
+
+    .ring .track.phase2 {
+      stroke: var(--phase2-soft);
+    }
+
+    .ring .fill {
+      fill: none;
+      stroke-width: 9;
+      stroke-linecap: butt;
+      transition: stroke 0.25s ease;
+    }
+
+    .ring .fill.phase1 {
+      stroke: var(--phase1);
+    }
+
+    .ring .fill.phase2 {
+      stroke: var(--phase2);
+    }
+
+    .stage.done .ring .fill.phase1,
+    .stage.idle .ring .fill.phase1 {
+      stroke: var(--phase1-soft);
+    }
+
+    .stage.done .ring .fill.phase2,
+    .stage.idle .ring .fill.phase2 {
+      stroke: var(--phase2-soft);
+    }
+
+    .stage-center {
+      position: absolute;
+      inset: 16%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.55), transparent 70%);
+    }
+
+    .phase {
+      font-family: var(--font-display);
+      font-size: clamp(3.4rem, 15vw, 5rem);
+      font-weight: 700;
+      line-height: 0.85;
+      letter-spacing: 0.06em;
+      margin: 0;
+      text-transform: uppercase;
+      color: var(--center);
+      animation: phase-in 0.28s ease;
+    }
+
+    .stage.phase1 .phase,
+    .stage.phase2 .phase {
+      text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.95),
+        0 0 2px rgba(255, 255, 255, 1),
+        0 1px 0 rgba(255, 255, 255, 0.85),
+        0 -1px 0 rgba(255, 255, 255, 0.85),
+        1px 0 0 rgba(255, 255, 255, 0.85),
+        -1px 0 0 rgba(255, 255, 255, 0.85);
+    }
+
+    .stage.phase1 .phase {
+      color: var(--phase1);
+    }
+
+    .stage.phase2 .phase {
+      color: var(--phase2);
+    }
+
+    @keyframes phase-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .countdown {
+      font-family: var(--font-display);
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(2.4rem, 10vw, 3.3rem);
+      font-weight: 500;
+      line-height: 1;
+      margin: 2px 0 8px;
+      letter-spacing: 0.04em;
+      color: var(--center);
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    button {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 20px;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease, opacity 0.2s ease;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    button.primary {
+      width: 100%;
+      background: var(--accent);
+      color: var(--btn-text);
+      font-weight: 600;
+      letter-spacing: 0;
+      font-size: 1.35rem;
+      line-height: 1;
+      padding: 16px 20px;
+      border: 2px solid transparent;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease, opacity 0.2s ease, filter 0.2s ease;
+    }
+
+    button.primary:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    body.phase-idle button.primary,
+    body.phase-done button.primary {
+      background: var(--phase1-soft);
+      color: var(--phase1);
+      border-color: transparent;
+      filter: none;
+    }
+
+    body.phase-idle button.primary:hover:not(:disabled),
+    body.phase-done button.primary:hover:not(:disabled) {
+      filter: brightness(0.97);
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 1.35rem;
+      line-height: 1;
+      padding: 8px 16px;
+      align-self: center;
+    }
+
+    button.ghost:hover:not(:disabled) {
+      color: var(--ink);
+      background: rgba(16, 24, 32, 0.05);
+    }
+
+    .is-hidden {
+      display: none !important;
+    }
+
+    .params {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px 16px 16px;
+      border-radius: 20px;
+      background: var(--surface);
+      border: 1px solid rgba(197, 208, 218, 0.7);
+      backdrop-filter: blur(8px);
+    }
+
+    .settings-trio {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px 14px;
+      align-items: center;
+    }
+
+    .phase-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .phase-group input[type="text"] {
+      width: 100%;
+      max-width: 132px;
+      text-align: center;
+    }
+
+    .rounds-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 0 4px;
+      align-self: end;
+    }
+
+    .rounds-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 8px;
+    }
+
+    .rounds-dots .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ink);
+      opacity: 0.45;
+    }
+
+    .rounds-dots .dots-more {
+      font-size: 0.7rem;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--muted);
+      margin-left: 1px;
+    }
+
+    .phase-picker-title {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .swatches {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .swatch {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      box-shadow: inset 0 0 0 1px rgba(16, 24, 32, 0.12);
+      cursor: pointer;
+      background: var(--swatch);
+      flex: 0 0 auto;
+    }
+
+    .swatch:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .swatch[aria-pressed="true"] {
+      border-color: var(--ink);
+      box-shadow:
+        inset 0 0 0 1px rgba(16, 24, 32, 0.08),
+        0 0 0 2px rgba(255, 255, 255, 0.9);
+    }
+
+    .unit-field {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .unit-field input {
+      width: 5.25rem;
+      flex: 0 0 auto;
+      text-align: right;
+      padding-inline: 8px;
+    }
+
+    .unit-field .unit {
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--muted);
+    }
+
+    .pattern-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .pattern-picker {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pattern-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .pattern-option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .pattern-option:hover:not(:disabled) {
+      border-color: #9aa8b5;
+    }
+
+    .pattern-option[aria-pressed="true"] {
+      border-color: var(--phase1);
+      box-shadow: 0 0 0 2px rgba(26, 116, 212, 0.12);
+      background: #fff;
+    }
+
+    .timeline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .timeline .seg {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex: 0 0 auto;
+    }
+
+    .timeline .seg.a {
+      background: var(--phase1);
+    }
+
+    .timeline .seg.b {
+      background: var(--phase2);
+    }
+
+    .timeline .gap {
+      width: 6px;
+      height: 2px;
+      border-radius: 1px;
+      background: rgba(16, 24, 32, 0.12);
+      flex: 0 0 auto;
+    }
+
+    input {
+      font: inherit;
+      font-size: 0.98rem;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: normal;
+      color: var(--ink);
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 12px;
+      width: 100%;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      accent-color: var(--phase1);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--phase1);
+      box-shadow: 0 0 0 3px rgba(26, 116, 212, 0.15);
+    }
+
+    input:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--line);
+      opacity: 0.7;
+    }
+
+    @media (max-width: 420px) {
+      .settings-trio {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body class="phase-idle">
+  <div class="app">
+    <section class="stage idle" id="stage" aria-live="polite">
+      <svg class="ring" id="ring" viewBox="0 0 100 100" aria-hidden="true"></svg>
+      <div class="stage-center">
+        <p class="phase" id="phaseLabel">Ready</p>
+        <p class="countdown" id="countdown">1:00</p>
+        <p class="meta" id="meta">0 / 3</p>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button class="primary" id="startBtn" type="button" aria-label="Start" title="Start"></button>
+      <button class="ghost is-hidden" id="resetBtn" type="button" aria-label="Reset" title="Reset"></button>
+    </div>
+
+    <form class="params" id="params" autocomplete="off">
+      <div class="settings-trio">
+        <div class="phase-group" data-phase="phase1">
+          <div class="swatches" id="phase1Swatches"></div>
+          <input id="phase1Label" type="text" maxlength="32" placeholder="Blue" aria-label="Phase 1 label" />
+          <span class="unit-field">
+            <input id="phase1Seconds" type="number" min="1" step="1" value="60" aria-label="Phase 1 seconds" />
+            <span class="unit">s</span>
+          </span>
+        </div>
+
+        <div class="rounds-group">
+          <div class="rounds-dots" id="roundsDots" aria-hidden="true"></div>
+          <span class="unit-field">
+            <input id="rounds" type="number" min="1" step="1" value="3" aria-label="Rounds" />
+          </span>
+        </div>
+
+        <div class="phase-group" data-phase="phase2">
+          <div class="swatches" id="phase2Swatches"></div>
+          <input id="phase2Label" type="text" maxlength="32" placeholder="Coral" aria-label="Phase 2 label" />
+          <span class="unit-field">
+            <input id="phase2Seconds" type="number" min="1" step="1" value="30" aria-label="Phase 2 seconds" />
+            <span class="unit">s</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="pattern-section" id="patternSection">
+        <div class="divider"></div>
+        <div class="pattern-picker">
+          <div class="pattern-options">
+            <button type="button" class="pattern-option" id="patternEndsPhase1" aria-pressed="true"
+              aria-label="Pattern ending with phase 1">
+              <div class="timeline" id="patternEndsPhase1Timeline"></div>
+            </button>
+            <button type="button" class="pattern-option" id="patternEndsPhase2" aria-pressed="false"
+              aria-label="Pattern ending with phase 2">
+              <div class="timeline" id="patternEndsPhase2Timeline"></div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      var PHASE1_COLORS = {
+        blue: { name: "Blue", solid: "#1a74d4", soft: "#b7d4f2", glow: "rgba(26, 116, 212, 0.34)" },
+        teal: { name: "Teal", solid: "#0d9b8a", soft: "#b3ddd6", glow: "rgba(13, 155, 138, 0.34)" },
+        green: { name: "Green", solid: "#2a9d5c", soft: "#b8dfc8", glow: "rgba(42, 157, 92, 0.34)" },
+        violet: { name: "Violet", solid: "#6b5bd2", soft: "#ccc4f0", glow: "rgba(107, 91, 210, 0.34)" }
+      };
+
+      var PHASE2_COLORS = {
+        coral: { name: "Coral", solid: "#e06b56", soft: "#f0c8bf", glow: "rgba(224, 107, 86, 0.28)" },
+        red: { name: "Red", solid: "#d14937", soft: "#f0c2ba", glow: "rgba(209, 73, 55, 0.28)" },
+        amber: { name: "Amber", solid: "#d4920a", soft: "#f0dfb0", glow: "rgba(212, 146, 10, 0.28)" },
+        rose: { name: "Rose", solid: "#c44d7a", soft: "#ecc0d0", glow: "rgba(196, 77, 122, 0.28)" }
+      };
+
+      var DEFAULTS = {
+        phase1ColorId: "blue",
+        phase2ColorId: "coral",
+        phase1Seconds: 60,
+        phase2Seconds: 30,
+        rounds: 3,
+        phase1Label: "",
+        phase2Label: "",
+        includeFinalPhase2: false
+      };
+
+      var STORAGE_KEY = "interval-timer-settings-v1";
+      var SYM_PLAY = "\u25B6";
+      var SYM_PAUSE = "\u23F8";
+      var SYM_RESET = "\u21BA";
+
+      var CX = 50;
+      var CY = 50;
+      var RADIUS = 41;
+      var ROUND_GAP_BUDGET = 28;
+      var ROUND_GAP_MIN = 2;
+      var ROUND_GAP_MAX = 8;
+
+      function roundGapDeg() {
+        var rounds = Math.max(1, config.rounds);
+        var gap = ROUND_GAP_BUDGET / rounds;
+        return Math.max(ROUND_GAP_MIN, Math.min(ROUND_GAP_MAX, gap));
+      }
+
+      var stageEl = document.getElementById("stage");
+      var ringEl = document.getElementById("ring");
+      var phaseLabelEl = document.getElementById("phaseLabel");
+      var countdownEl = document.getElementById("countdown");
+      var metaEl = document.getElementById("meta");
+      var startBtn = document.getElementById("startBtn");
+      var resetBtn = document.getElementById("resetBtn");
+      var paramsEl = document.getElementById("params");
+      var patternSectionEl = document.getElementById("patternSection");
+      var phase1SwatchesEl = document.getElementById("phase1Swatches");
+      var phase2SwatchesEl = document.getElementById("phase2Swatches");
+      var patternEndsPhase1Btn = document.getElementById("patternEndsPhase1");
+      var patternEndsPhase2Btn = document.getElementById("patternEndsPhase2");
+      var patternEndsPhase1Timeline = document.getElementById("patternEndsPhase1Timeline");
+      var patternEndsPhase2Timeline = document.getElementById("patternEndsPhase2Timeline");
+      var roundsDotsEl = document.getElementById("roundsDots");
+
+      var inputs = {
+        phase1Seconds: document.getElementById("phase1Seconds"),
+        phase2Seconds: document.getElementById("phase2Seconds"),
+        rounds: document.getElementById("rounds"),
+        phase1Label: document.getElementById("phase1Label"),
+        phase2Label: document.getElementById("phase2Label")
+      };
+
+      var timerId = null;
+      var running = false;
+      var paused = false;
+      var remainingMs = 0;
+      var deadline = 0;
+      var phase = "idle";
+      var round = 0;
+      var config = Object.assign({}, DEFAULTS);
+      var ringSignature = "";
+
+      function saveSettings() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            phase1ColorId: config.phase1ColorId,
+            phase2ColorId: config.phase2ColorId,
+            phase1Seconds: config.phase1Seconds,
+            phase2Seconds: config.phase2Seconds,
+            rounds: config.rounds,
+            phase1Label: config.phase1Label,
+            phase2Label: config.phase2Label,
+            includeFinalPhase2: config.includeFinalPhase2
+          }));
+        } catch (err) {
+          // Ignore quota / private mode errors.
+        }
+      }
+
+      function loadSettings() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) {
+            return Object.assign({}, DEFAULTS);
+          }
+          var parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object") {
+            return Object.assign({}, DEFAULTS);
+          }
+
+          var phase1ColorId = PHASE1_COLORS[parsed.phase1ColorId]
+            ? parsed.phase1ColorId
+            : DEFAULTS.phase1ColorId;
+          var phase2ColorId = PHASE2_COLORS[parsed.phase2ColorId]
+            ? parsed.phase2ColorId
+            : DEFAULTS.phase2ColorId;
+          var phase1Seconds = Math.max(
+            1,
+            Math.floor(Number(parsed.phase1Seconds) || DEFAULTS.phase1Seconds)
+          );
+          var phase2Seconds = Math.max(
+            1,
+            Math.floor(Number(parsed.phase2Seconds) || DEFAULTS.phase2Seconds)
+          );
+          var rounds = Math.max(
+            1,
+            Math.floor(Number(parsed.rounds) || DEFAULTS.rounds)
+          );
+          var phase1Label = typeof parsed.phase1Label === "string"
+            ? parsed.phase1Label.trim()
+            : DEFAULTS.phase1Label;
+          var phase2Label = typeof parsed.phase2Label === "string"
+            ? parsed.phase2Label.trim()
+            : DEFAULTS.phase2Label;
+
+          return {
+            phase1ColorId: phase1ColorId,
+            phase2ColorId: phase2ColorId,
+            phase1Seconds: phase1Seconds,
+            phase2Seconds: phase2Seconds,
+            rounds: rounds,
+            phase1Label: phase1Label,
+            phase2Label: phase2Label,
+            includeFinalPhase2: !!parsed.includeFinalPhase2
+          };
+        } catch (err) {
+          return Object.assign({}, DEFAULTS);
+        }
+      }
+
+      function applyConfigToInputs() {
+        inputs.phase1Seconds.value = String(config.phase1Seconds);
+        inputs.phase2Seconds.value = String(config.phase2Seconds);
+        inputs.rounds.value = String(config.rounds);
+        inputs.phase1Label.value = config.phase1Label;
+        inputs.phase2Label.value = config.phase2Label;
+      }
+
+      function getColor(phaseKey, colorId) {
+        var table = phaseKey === "phase1" ? PHASE1_COLORS : PHASE2_COLORS;
+        return table[colorId] || table[phaseKey === "phase1" ? "blue" : "coral"];
+      }
+
+      function displayName(phaseKey) {
+        var custom = phaseKey === "phase1" ? config.phase1Label : config.phase2Label;
+        if (custom && custom.trim()) {
+          return custom.trim();
+        }
+        var colorId = phaseKey === "phase1" ? config.phase1ColorId : config.phase2ColorId;
+        return getColor(phaseKey, colorId).name;
+      }
+
+      function applyThemeColors() {
+        var c1 = getColor("phase1", config.phase1ColorId);
+        var c2 = getColor("phase2", config.phase2ColorId);
+        var root = document.documentElement.style;
+        root.setProperty("--phase1", c1.solid);
+        root.setProperty("--phase1-soft", c1.soft);
+        root.setProperty("--phase2", c2.solid);
+        root.setProperty("--phase2-soft", c2.soft);
+        root.setProperty("--bg-glow-a", c1.glow);
+        root.setProperty("--bg-glow-b", c2.glow);
+      }
+
+      function renderTimeline(container, includeFinalPhase2) {
+        container.innerHTML = "";
+        var name1 = displayName("phase1");
+        var name2 = displayName("phase2");
+        var displayRounds = Math.min(config.rounds, 3);
+        var first = true;
+
+        for (var r = 1; r <= displayRounds; r++) {
+          if (!first) {
+            var gap = document.createElement("span");
+            gap.className = "gap";
+            container.appendChild(gap);
+          }
+          first = false;
+
+          var segA = document.createElement("span");
+          segA.className = "seg a";
+          segA.title = name1;
+          container.appendChild(segA);
+
+          if (includeFinalPhase2 || r < displayRounds) {
+            var segB = document.createElement("span");
+            segB.className = "seg b";
+            segB.title = name2;
+            container.appendChild(segB);
+          }
+        }
+      }
+
+      function renderRoundsDots() {
+        roundsDotsEl.innerHTML = "";
+        var maxDots = 5;
+        var count = Math.min(config.rounds, maxDots);
+        for (var i = 0; i < count; i++) {
+          var dot = document.createElement("span");
+          dot.className = "dot";
+          roundsDotsEl.appendChild(dot);
+        }
+        if (config.rounds > maxDots) {
+          var more = document.createElement("span");
+          more.className = "dots-more";
+          more.textContent = "+";
+          roundsDotsEl.appendChild(more);
+        }
+      }
+
+      function updateCaptions() {
+        var name1 = displayName("phase1");
+        var name2 = displayName("phase2");
+        inputs.phase1Label.placeholder = getColor("phase1", config.phase1ColorId).name;
+        inputs.phase2Label.placeholder = getColor("phase2", config.phase2ColorId).name;
+        inputs.phase1Seconds.setAttribute("aria-label", name1 + " seconds");
+        inputs.phase2Seconds.setAttribute("aria-label", name2 + " seconds");
+        renderRoundsDots();
+
+        var showPattern = config.rounds > 1;
+        patternSectionEl.classList.toggle("is-hidden", !showPattern);
+
+        if (showPattern) {
+          renderTimeline(patternEndsPhase1Timeline, false);
+          renderTimeline(patternEndsPhase2Timeline, true);
+          patternEndsPhase1Btn.setAttribute(
+            "aria-pressed",
+            config.includeFinalPhase2 ? "false" : "true"
+          );
+          patternEndsPhase2Btn.setAttribute(
+            "aria-pressed",
+            config.includeFinalPhase2 ? "true" : "false"
+          );
+          patternEndsPhase1Btn.setAttribute("aria-label", "Pattern ending with " + name1);
+          patternEndsPhase2Btn.setAttribute("aria-label", "Pattern ending with " + name2);
+        }
+      }
+
+      function setPattern(includeFinalPhase2) {
+        if (running) {
+          return;
+        }
+        config.includeFinalPhase2 = includeFinalPhase2;
+        ringSignature = "";
+        saveSettings();
+        updateCaptions();
+        render();
+      }
+
+      function renderSwatches(container, phaseKey, colors, selectedId) {
+        container.innerHTML = "";
+        Object.keys(colors).forEach(function (id) {
+          var color = colors[id];
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "swatch";
+          btn.style.setProperty("--swatch", color.solid);
+          btn.title = color.name;
+          btn.setAttribute("aria-label", color.name);
+          btn.setAttribute("aria-pressed", id === selectedId ? "true" : "false");
+          btn.disabled = running;
+          btn.addEventListener("click", function () {
+            if (running) {
+              return;
+            }
+            if (phaseKey === "phase1") {
+              config.phase1ColorId = id;
+            } else {
+              config.phase2ColorId = id;
+            }
+            ringSignature = "";
+            saveSettings();
+            applyThemeColors();
+            updateCaptions();
+            renderSwatchState();
+            render();
+          });
+          container.appendChild(btn);
+        });
+      }
+
+      function renderSwatchState() {
+        renderSwatches(phase1SwatchesEl, "phase1", PHASE1_COLORS, config.phase1ColorId);
+        renderSwatches(phase2SwatchesEl, "phase2", PHASE2_COLORS, config.phase2ColorId);
+      }
+
+      function parseParams() {
+        var phase1Seconds = Math.max(1, Math.floor(Number(inputs.phase1Seconds.value) || DEFAULTS.phase1Seconds));
+        var phase2Seconds = Math.max(1, Math.floor(Number(inputs.phase2Seconds.value) || DEFAULTS.phase2Seconds));
+        var rounds = Math.max(1, Math.floor(Number(inputs.rounds.value) || DEFAULTS.rounds));
+        var phase1Label = inputs.phase1Label.value.trim();
+        var phase2Label = inputs.phase2Label.value.trim();
+
+        inputs.phase1Seconds.value = String(phase1Seconds);
+        inputs.phase2Seconds.value = String(phase2Seconds);
+        inputs.rounds.value = String(rounds);
+        inputs.phase1Label.value = phase1Label;
+        inputs.phase2Label.value = phase2Label;
+
+        var next = {
+          phase1ColorId: config.phase1ColorId,
+          phase2ColorId: config.phase2ColorId,
+          phase1Seconds: phase1Seconds,
+          phase2Seconds: phase2Seconds,
+          rounds: rounds,
+          phase1Label: phase1Label,
+          phase2Label: phase2Label,
+          includeFinalPhase2: config.includeFinalPhase2
+        };
+        return next;
+      }
+
+      function formatTime(ms) {
+        var totalSec = Math.max(0, Math.ceil(ms / 1000));
+        var minutes = Math.floor(totalSec / 60);
+        var seconds = totalSec % 60;
+        return minutes + ":" + String(seconds).padStart(2, "0");
+      }
+
+      function setInputsDisabled(disabled) {
+        Object.keys(inputs).forEach(function (key) {
+          inputs[key].disabled = disabled;
+        });
+        patternEndsPhase1Btn.disabled = disabled;
+        patternEndsPhase2Btn.disabled = disabled;
+        renderSwatchState();
+      }
+
+      function polarToCartesian(cx, cy, r, angleDeg) {
+        var rad = ((angleDeg - 90) * Math.PI) / 180;
+        return {
+          x: cx + r * Math.cos(rad),
+          y: cy + r * Math.sin(rad)
+        };
+      }
+
+      function describeArc(cx, cy, r, startAngle, endAngle) {
+        var start = polarToCartesian(cx, cy, r, startAngle);
+        var end = polarToCartesian(cx, cy, r, endAngle);
+        var delta = ((endAngle - startAngle) % 360 + 360) % 360;
+        if (delta < 0.001) {
+          return "";
+        }
+        var largeArc = delta > 180 ? 1 : 0;
+        return [
+          "M", start.x, start.y,
+          "A", r, r, 0, largeArc, 1, end.x, end.y
+        ].join(" ");
+      }
+
+      function appendPath(className, d) {
+        if (!d) {
+          return;
+        }
+        var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("class", className);
+        path.setAttribute("d", d);
+        ringEl.appendChild(path);
+      }
+
+      function buildSegments() {
+        var segs = [];
+        for (var r = 1; r <= config.rounds; r++) {
+          segs.push({
+            type: "phase1",
+            round: r,
+            seconds: config.phase1Seconds
+          });
+          if (config.includeFinalPhase2 || r < config.rounds) {
+            segs.push({
+              type: "phase2",
+              round: r,
+              seconds: config.phase2Seconds
+            });
+          }
+        }
+        return segs;
+      }
+
+      function totalSeconds(segs) {
+        var total = 0;
+        for (var i = 0; i < segs.length; i++) {
+          total += segs[i].seconds;
+        }
+        return total;
+      }
+
+      function ringKey() {
+        return [
+          config.rounds,
+          config.phase1Seconds,
+          config.phase2Seconds,
+          config.includeFinalPhase2 ? 1 : 0,
+          config.phase1ColorId,
+          config.phase2ColorId
+        ].join(":");
+      }
+
+      function ensureRing() {
+        var key = ringKey();
+        if (ringSignature === key) {
+          return;
+        }
+        ringSignature = key;
+        ringEl.innerHTML = "";
+
+        var segs = buildSegments();
+        var total = totalSeconds(segs);
+        if (segs.length === 0 || total <= 0) {
+          return;
+        }
+
+        var gapCount = config.rounds;
+        var gapDeg = roundGapDeg();
+        var usable = Math.max(1, 360 - gapCount * gapDeg);
+        var bounds = [];
+        var cursor = gapDeg / 2;
+        var prevRound = 0;
+
+        for (var i = 0; i < segs.length; i++) {
+          if (prevRound !== 0 && segs[i].round !== prevRound) {
+            cursor += gapDeg;
+          }
+          var span = usable * (segs[i].seconds / total);
+          bounds.push({
+            start: cursor,
+            end: cursor + span,
+            type: segs[i].type,
+            seconds: segs[i].seconds
+          });
+          cursor += span;
+          prevRound = segs[i].round;
+        }
+
+        for (var j = 0; j < bounds.length; j++) {
+          appendPath(
+            "track " + bounds[j].type,
+            describeArc(CX, CY, RADIUS, bounds[j].start, bounds[j].end)
+          );
+        }
+
+        var fillGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        fillGroup.setAttribute("id", "ringFillGroup");
+        for (var f = 0; f < bounds.length; f++) {
+          var fillPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          fillPath.setAttribute("class", "fill " + bounds[f].type);
+          fillPath.setAttribute("d", "");
+          fillPath.dataset.start = String(bounds[f].start);
+          fillPath.dataset.end = String(bounds[f].end);
+          fillPath.dataset.seconds = String(bounds[f].seconds);
+          fillGroup.appendChild(fillPath);
+        }
+        ringEl.appendChild(fillGroup);
+      }
+
+      function updateRing() {
+        ensureRing();
+        var fillGroup = document.getElementById("ringFillGroup");
+        if (!fillGroup) {
+          return;
+        }
+
+        var fills = fillGroup.querySelectorAll(".fill");
+        var segs = buildSegments();
+        var total = totalSeconds(segs);
+        if (total <= 0) {
+          return;
+        }
+
+        var elapsedSec = 0;
+        if (phase === "done") {
+          elapsedSec = total;
+        } else if (phase !== "idle" && round >= 1) {
+          for (var i = 0; i < segs.length; i++) {
+            var seg = segs[i];
+            if (seg.round === round && seg.type === phase) {
+              elapsedSec += seg.seconds - remainingMs / 1000;
+              break;
+            }
+            elapsedSec += seg.seconds;
+          }
+        }
+
+        var consumed = 0;
+        for (var j = 0; j < fills.length; j++) {
+          var fill = fills[j];
+          var start = Number(fill.dataset.start);
+          var end = Number(fill.dataset.end);
+          var seconds = Number(fill.dataset.seconds);
+          var segStart = consumed;
+          var segEnd = consumed + seconds;
+          consumed = segEnd;
+
+          var ratio = 0;
+          if (elapsedSec >= segEnd) {
+            ratio = 1;
+          } else if (elapsedSec > segStart) {
+            ratio = (elapsedSec - segStart) / seconds;
+          }
+
+          if (ratio <= 0.001) {
+            fill.setAttribute("d", "");
+            fill.style.display = "none";
+          } else {
+            fill.style.display = "";
+            fill.setAttribute(
+              "d",
+              describeArc(CX, CY, RADIUS, start, start + (end - start) * Math.min(1, ratio))
+            );
+          }
+        }
+      }
+
+      function render() {
+        var displayText = "Ready";
+        var stageClass = "idle";
+
+        if (phase === "phase1") {
+          displayText = displayName("phase1");
+          stageClass = "phase1";
+        } else if (phase === "phase2") {
+          displayText = displayName("phase2");
+          stageClass = "phase2";
+        } else if (phase === "done") {
+          displayText = "Done";
+          stageClass = "done";
+        }
+
+        applyThemeColors();
+        updateCaptions();
+
+        document.body.className = "phase-" + stageClass;
+        stageEl.className = "stage " + stageClass;
+        phaseLabelEl.textContent = displayText;
+        countdownEl.textContent = formatTime(remainingMs);
+
+        if (phase === "idle") {
+          metaEl.textContent = "0 / " + config.rounds;
+        } else if (phase === "done") {
+          metaEl.textContent = config.rounds + " / " + config.rounds;
+        } else {
+          metaEl.textContent = round + " / " + config.rounds +
+            (paused ? "  paused" : "");
+        }
+
+        var startLabel = "Start";
+        var startSymbol = SYM_PLAY;
+        if (!running) {
+          if (phase === "done") {
+            startLabel = "Restart";
+          }
+        } else if (paused) {
+          startLabel = "Resume";
+        } else {
+          startLabel = "Pause";
+          startSymbol = SYM_PAUSE;
+        }
+
+        startBtn.textContent = startSymbol;
+        startBtn.setAttribute("aria-label", startLabel);
+        startBtn.setAttribute("title", startLabel);
+        resetBtn.textContent = SYM_RESET;
+        resetBtn.setAttribute("aria-label", "Reset");
+        resetBtn.setAttribute("title", "Reset");
+
+        var isIdle = phase === "idle" && !running;
+        resetBtn.classList.toggle("is-hidden", isIdle);
+        paramsEl.classList.toggle("is-hidden", !isIdle);
+
+        updateRing();
+      }
+
+      function clearTick() {
+        if (timerId !== null) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
+
+      function beginPhase(nextPhase) {
+        phase = nextPhase;
+        var seconds = nextPhase === "phase1" ? config.phase1Seconds : config.phase2Seconds;
+        remainingMs = seconds * 1000;
+        deadline = Date.now() + remainingMs;
+        render();
+      }
+
+      function advance() {
+        if (phase === "phase1") {
+          if (!config.includeFinalPhase2 && round >= config.rounds) {
+            finish();
+            return;
+          }
+          beginPhase("phase2");
+          return;
+        }
+
+        if (phase === "phase2") {
+          if (round >= config.rounds) {
+            finish();
+            return;
+          }
+          round += 1;
+          beginPhase("phase1");
+          return;
+        }
+      }
+
+      function finish() {
+        clearTick();
+        running = false;
+        paused = false;
+        phase = "done";
+        remainingMs = 0;
+        setInputsDisabled(false);
+        render();
+      }
+
+      function tick() {
+        remainingMs = Math.max(0, deadline - Date.now());
+        if (remainingMs <= 0) {
+          remainingMs = 0;
+          render();
+          advance();
+          return;
+        }
+        render();
+      }
+
+      function startTimer() {
+        clearTick();
+        timerId = setInterval(tick, 100);
+      }
+
+      function start() {
+        config = parseParams();
+        running = true;
+        paused = false;
+        round = 1;
+        setInputsDisabled(true);
+        beginPhase("phase1");
+        startTimer();
+      }
+
+      function pause() {
+        paused = true;
+        clearTick();
+        remainingMs = Math.max(0, deadline - Date.now());
+        render();
+      }
+
+      function resume() {
+        paused = false;
+        deadline = Date.now() + remainingMs;
+        startTimer();
+        render();
+      }
+
+      function reset() {
+        clearTick();
+        running = false;
+        paused = false;
+        phase = "idle";
+        round = 0;
+        config = parseParams();
+        remainingMs = config.phase1Seconds * 1000;
+        setInputsDisabled(false);
+        render();
+      }
+
+      startBtn.addEventListener("click", function () {
+        if (!running || phase === "done") {
+          start();
+          return;
+        }
+        if (paused) {
+          resume();
+        } else {
+          pause();
+        }
+      });
+
+      resetBtn.addEventListener("click", reset);
+
+      patternEndsPhase1Btn.addEventListener("click", function () {
+        setPattern(false);
+      });
+      patternEndsPhase2Btn.addEventListener("click", function () {
+        setPattern(true);
+      });
+
+      Object.keys(inputs).forEach(function (key) {
+        inputs[key].addEventListener("change", function () {
+          if (!running) {
+            config = parseParams();
+            saveSettings();
+            remainingMs = config.phase1Seconds * 1000;
+            render();
+          }
+        });
+        if (key === "phase1Label" || key === "phase2Label") {
+          inputs[key].addEventListener("input", function () {
+            if (!running) {
+              config = parseParams();
+              saveSettings();
+              updateCaptions();
+              if (phase === "idle") {
+                render();
+              }
+            }
+          });
+        }
+      });
+
+      config = loadSettings();
+      applyConfigToInputs();
+      renderSwatchState();
+      applyThemeColors();
+      updateCaptions();
+      reset();
+    })();
+  </script>
+</body>
+
+</html>
