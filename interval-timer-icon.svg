@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Interval Timer icon">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="40" x2="430" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#15283e"/>
+      <stop offset="0.55" stop-color="#0d1d33"/>
+      <stop offset="1" stop-color="#081321"/>
+    </linearGradient>
+
+    <linearGradient id="ring" x1="115" y1="115" x2="397" y2="397" gradientUnits="userSpaceOnUse">
+      <stop offset="0.00" stop-color="#57e39c"/>
+      <stop offset="0.24" stop-color="#25d8dc"/>
+      <stop offset="0.48" stop-color="#2196f3"/>
+      <stop offset="0.69" stop-color="#ffd43b"/>
+      <stop offset="0.86" stop-color="#ff9f1c"/>
+      <stop offset="1.00" stop-color="#ff4d3d"/>
+    </linearGradient>
+
+    <radialGradient id="centerGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#1b3155"/>
+      <stop offset="1" stop-color="#0b1730"/>
+    </radialGradient>
+
+    <linearGradient id="hand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e8eef7"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+
+    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Full square background. iOS applies its own icon mask. -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Subtle inner clock face -->
+  <circle cx="256" cy="256" r="156" fill="url(#centerGlow)" opacity="0.96"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#29446a" stroke-width="2" opacity="0.5"/>
+
+  <!-- Timer progress ring, intentionally leaving a small gap at 12 o'clock -->
+  <circle
+    cx="256"
+    cy="256"
+    r="172"
+    fill="none"
+    stroke="url(#ring)"
+    stroke-width="38"
+    stroke-linecap="round"
+    stroke-dasharray="1000 81"
+    transform="rotate(-87 256 256)"
+    filter="url(#shadow)"
+  />
+
+  <!-- 12 o'clock marker -->
+  <rect x="248" y="51" width="16" height="38" rx="8" fill="#ffffff" opacity="0.97" filter="url(#softShadow)"/>
+
+  <!-- Clock hand -->
+  <rect x="246" y="132" width="20" height="127" rx="10" fill="url(#hand)" filter="url(#softShadow)"/>
+
+  <!-- Center pivot -->
+  <circle cx="256" cy="256" r="28" fill="url(#hand)" filter="url(#softShadow)"/>
+  <circle cx="249" cy="248" r="8" fill="#ffffff" opacity="0.55"/>
+</svg>
