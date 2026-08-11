@@ -279,6 +279,14 @@
       background: rgba(16, 24, 32, 0.05);
     }
 
+    button.primary svg,
+    button.ghost svg {
+      display: block;
+      width: 1.15em;
+      height: 1.15em;
+      margin: 0 auto;
+    }
+
     .is-hidden {
       display: none !important;
     }
@@ -523,8 +531,79 @@
     }
 
     @media (max-width: 420px) {
+      body {
+        padding: 20px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .app {
+        gap: 16px;
+      }
+
+      .params {
+        padding: 14px 10px 12px;
+      }
+
       .settings-trio {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        gap: 8px 6px;
+      }
+
+      .phase-group {
+        gap: 6px;
+      }
+
+      .phase-group input[type="text"] {
+        max-width: none;
+        width: 100%;
+        font-size: 0.88rem;
+        padding: 9px 6px;
+      }
+
+      .swatches {
+        gap: 3px;
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .swatch {
+        width: 20px;
+        height: 20px;
+      }
+
+      .unit-field {
+        gap: 3px;
+        width: 100%;
+      }
+
+      .unit-field input {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 auto;
+        font-size: 0.88rem;
+        padding-inline: 4px;
+      }
+
+      .rounds-group {
+        padding: 0 2px;
+      }
+
+      .rounds-group .unit-field input {
+        width: 3.25rem;
+        flex: 0 0 auto;
+      }
+
+      .pattern-options {
+        gap: 6px;
+      }
+
+      .pattern-option {
+        min-height: 40px;
+        padding: 8px;
+      }
+
+      .timeline .seg {
+        width: 12px;
+        height: 12px;
       }
     }
   </style>
@@ -620,9 +699,6 @@
       };
 
       var STORAGE_KEY = "interval-timer-settings-v1";
-      var SYM_PLAY = "\u25B6";
-      var SYM_PAUSE = "\u23F8";
-      var SYM_RESET = "\u21BA";
 
       var CX = 50;
       var CY = 50;
@@ -635,6 +711,52 @@
         var rounds = Math.max(1, config.rounds);
         var gap = ROUND_GAP_BUDGET / rounds;
         return Math.max(ROUND_GAP_MIN, Math.min(ROUND_GAP_MAX, gap));
+      }
+
+      function createSvgIcon(type) {
+        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("focusable", "false");
+
+        if (type === "play") {
+          var play = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          play.setAttribute("d", "M8 5.14v13.72a1 1 0 0 0 1.5.86l11.04-6.86a1 1 0 0 0 0-1.72L9.5 4.28a1 1 0 0 0-1.5.86z");
+          play.setAttribute("fill", "currentColor");
+          svg.appendChild(play);
+        } else if (type === "pause") {
+          var left = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          left.setAttribute("x", "6");
+          left.setAttribute("y", "5");
+          left.setAttribute("width", "4.5");
+          left.setAttribute("height", "14");
+          left.setAttribute("rx", "1.2");
+          left.setAttribute("fill", "currentColor");
+          var right = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          right.setAttribute("x", "13.5");
+          right.setAttribute("y", "5");
+          right.setAttribute("width", "4.5");
+          right.setAttribute("height", "14");
+          right.setAttribute("rx", "1.2");
+          right.setAttribute("fill", "currentColor");
+          svg.appendChild(left);
+          svg.appendChild(right);
+        } else {
+          var reset = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          reset.setAttribute(
+            "d",
+            "M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z"
+          );
+          reset.setAttribute("fill", "currentColor");
+          svg.appendChild(reset);
+        }
+
+        return svg;
+      }
+
+      function setButtonIcon(btn, type) {
+        btn.textContent = "";
+        btn.appendChild(createSvgIcon(type));
       }
 
       var stageEl = document.getElementById("stage");
@@ -1156,7 +1278,7 @@
         }
 
         var startLabel = "Start";
-        var startSymbol = SYM_PLAY;
+        var startIcon = "play";
         if (!running) {
           if (phase === "done") {
             startLabel = "Restart";
@@ -1165,13 +1287,13 @@
           startLabel = "Resume";
         } else {
           startLabel = "Pause";
-          startSymbol = SYM_PAUSE;
+          startIcon = "pause";
         }
 
-        startBtn.textContent = startSymbol;
+        setButtonIcon(startBtn, startIcon);
         startBtn.setAttribute("aria-label", startLabel);
         startBtn.setAttribute("title", startLabel);
-        resetBtn.textContent = SYM_RESET;
+        setButtonIcon(resetBtn, "reset");
         resetBtn.setAttribute("aria-label", "Reset");
         resetBtn.setAttribute("title", "Reset");
 
